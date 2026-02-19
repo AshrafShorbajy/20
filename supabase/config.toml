@@ -1,0 +1,10 @@
+project_id = "ntzlagzhgcldxcbvaumq"
+
+[functions.send-push-notification]
+verify_jwt = false
+
+[functions.create-zoom-meeting]
+verify_jwt = false
+
+[functions.check-group-schedules]
+verify_jwt = false

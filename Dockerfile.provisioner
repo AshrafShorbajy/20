@@ -1,0 +1,11 @@
+FROM node:20-slim
+WORKDIR /app
+RUN apt-get update && apt-get install -y curl unzip && rm -rf /var/lib/apt/lists/* \
+  && curl -sL https://github.com/supabase/cli/releases/download/v1.176.10/supabase_1.176.10_linux_amd64.tar.gz -o /tmp/supabase.tar.gz \
+  && tar -xzf /tmp/supabase.tar.gz -C /usr/local/bin supabase \
+  && chmod +x /usr/local/bin/supabase
+COPY supabase /app/supabase
+COPY docker/provision.sh /app/provision.sh
+RUN chmod +x /app/provision.sh
+ENV SUPABASE_ACCESS_TOKEN=\"\" PROJECT_REF=\"\" SUPABASE_URL=\"\" SUPABASE_SERVICE_ROLE_KEY=\"\" ADMIN_EMAIL=\"\" ADMIN_PASSWORD=\"\" ZOOM_WEBHOOK_SECRET=\"\"
+CMD [\"/app/provision.sh\"]
