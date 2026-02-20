@@ -23,6 +23,9 @@
       <label>Supabase Anon Key
         <input id="anon" type="text" placeholder="ey..." required />
       </label>
+      <label>Supabase Service Role Key
+        <input id="serviceRole" type="password" placeholder="service_role_key" required />
+      </label>
       <label>Admin Email
         <input id="adminEmail" type="email" placeholder="admin@example.com" required />
       </label>
@@ -40,6 +43,7 @@
       const anonEl = document.getElementById('anon');
       const adminEmailEl = document.getElementById('adminEmail');
       const adminPasswordEl = document.getElementById('adminPassword');
+      const serviceRoleEl = document.getElementById('serviceRole');
       const checkBtn = document.getElementById('check');
       const applyBtn = document.getElementById('apply');
 
@@ -60,13 +64,14 @@
         const anon = anonEl.value.trim();
         const adminEmail = adminEmailEl.value.trim();
         const adminPassword = adminPasswordEl.value.trim();
+        const serviceRole = serviceRoleEl.value.trim();
         statusEl.textContent = 'Checking...';
         const ok = await checkConnection(url, anon);
-        if (ok && adminEmail && adminPassword) {
+        if (ok && adminEmail && adminPassword && serviceRole) {
           statusEl.textContent = 'Connection OK';
           applyBtn.disabled = false;
         } else {
-          statusEl.textContent = 'Connection failed or admin credentials missing.';
+          statusEl.textContent = 'Connection failed or required fields missing.';
           applyBtn.disabled = true;
         }
       };
@@ -76,12 +81,13 @@
         const anon = anonEl.value.trim();
         const adminEmail = adminEmailEl.value.trim();
         const adminPassword = adminPasswordEl.value.trim();
+        const serviceRole = serviceRoleEl.value.trim();
         statusEl.textContent = 'Applying...';
         try {
           const res = await fetch('/install', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ SUPABASE_URL: url, SUPABASE_ANON_KEY: anon, ADMIN_EMAIL: adminEmail, ADMIN_PASSWORD: adminPassword })
+            body: JSON.stringify({ SUPABASE_URL: url, SUPABASE_ANON_KEY: anon, ADMIN_EMAIL: adminEmail, ADMIN_PASSWORD: adminPassword, SUPABASE_SERVICE_ROLE_KEY: serviceRole })
           });
           if (!res.ok) throw new Error('HTTP ' + res.status);
           statusEl.textContent = 'Saved. Redirecting...';

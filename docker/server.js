@@ -43,6 +43,50 @@ function serveFile(req, res, filePath) {
   });
 }
 
+async function createAdmin(url, serviceRole, email, password) {
+  try {
+    const api = new URL('/auth/v1/admin/users', url).toString();
+    const res = await fetch(api, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': serviceRole,
+        'Authorization': `Bearer ${serviceRole}`
+      },
+      body: JSON.stringify({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { role: 'admin' }
+      })
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json;
+  } catch (_) {
+    return null;
+  }
+}
+
+async function upsertProfile(url, serviceRole, id) {
+  try {
+    const rest = new URL('/rest/v1/profiles', url).toString();
+    const res = await fetch(rest, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': serviceRole,
+        'Authorization': `Bearer ${serviceRole}`,
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify({ id, role: 'admin' })
+    });
+    return res.ok;
+  } catch (_) {
+    return false;
+  }
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
 
@@ -52,7 +96,7 @@ const server = http.createServer(async (req, res) => {
     req.on('end', async () => {
       try {
         const json = JSON.parse(body || '{}');
-        if (!json.SUPABASE_URL || !json.SUPABASE_ANON_KEY || !json.ADMIN_EMAIL || !json.ADMIN_PASSWORD) {
+        if (!json.SUPABASE_URL || !json.SUPABASE_ANON_KEY || !json.ADMIN_EMAIL || !json.ADMIN_PASSWORD || !json.SUPABASE_SERVICE_ROLE_KEY) {
           res.writeHead(400);
           return res.end('Missing values');
         }
@@ -64,6 +108,10 @@ const server = http.createServer(async (req, res) => {
             ADMIN_PASSWORD: json.ADMIN_PASSWORD
           }), 'utf-8');
         } catch (_) {}
+        const created = await createAdmin(json.SUPABASE_URL, json.SUPABASE_SERVICE_ROLE_KEY, json.ADMIN_EMAIL, json.ADMIN_PASSWORD);
+        if (created && created.id) {
+          await upsertProfile(json.SUPABASE_URL, json.SUPABASE_SERVICE_ROLE_KEY, created.id);
+        }
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true }));
       } catch (e) {
