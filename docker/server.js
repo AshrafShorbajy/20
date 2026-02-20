@@ -247,6 +247,20 @@ const server = http.createServer(async (req, res) => {
         const s2 = await run(`npx supabase link --project-ref "${json.PROJECT_REF}"`, '/app', env);
         steps.push({ step: 'link', ok: s2.ok, out: s2.out, err: s2.err });
         if (!s2.ok) return send(res, { ok: false, steps });
+        try {
+          const extraPath = path.join('/app', 'sql-apply.sql');
+          if (json.APPLY_SQL !== false && fs.existsSync(extraPath)) {
+            const migrationsDir = path.join('/app', 'supabase', 'migrations');
+            try { fs.mkdirSync(migrationsDir, { recursive: true }); } catch (_) {}
+            const fname = `${Date.now()}_custom_apply.sql`;
+            const dest = path.join(migrationsDir, fname);
+            const buf = fs.readFileSync(extraPath);
+            fs.writeFileSync(dest, buf);
+            steps.push({ step: 'extra_sql_added', ok: true, file: fname });
+          }
+        } catch (_) {
+          steps.push({ step: 'extra_sql_added', ok: false });
+        }
         const s3 = await run(`npx supabase db push`, '/app', env);
         steps.push({ step: 'db_push', ok: s3.ok, out: s3.out, err: s3.err });
         if (!s3.ok) return send(res, { ok: false, steps });

@@ -42,6 +42,10 @@
         <input id="adminPassword" type="password" placeholder="********" required />
       </label>
       <button id="check">Check Connection</button>
+      <label>
+        <input id="applySql" type="checkbox" checked />
+        Apply extra SQL file (sql apply.txt)
+      </label>
       <button id="apply" disabled>Apply & Finish</button>
       <div class="status" id="status"></div>
     </div>
@@ -58,6 +62,7 @@
       const zoomSecretEl = document.getElementById('zoomSecret');
       const checkBtn = document.getElementById('check');
       const applyBtn = document.getElementById('apply');
+      const applySqlEl = document.getElementById('applySql');
 
       async function checkConnection(url, anon) {
         try {
@@ -80,6 +85,7 @@
         const accessToken = accessTokenEl.value.trim();
         const projectRef = projectRefEl.value.trim();
         const zoomSecret = zoomSecretEl.value.trim();
+        const applySql = applySqlEl.checked;
         statusEl.textContent = 'Checking...';
         const ok = await checkConnection(url, anon);
         if (ok && adminEmail && adminPassword && serviceRole && accessToken && projectRef) {
@@ -105,7 +111,7 @@
           const res = await fetch('/install', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ SUPABASE_URL: url, SUPABASE_ANON_KEY: anon, ADMIN_EMAIL: adminEmail, ADMIN_PASSWORD: adminPassword, SUPABASE_SERVICE_ROLE_KEY: serviceRole, SUPABASE_ACCESS_TOKEN: accessToken, PROJECT_REF: projectRef, ZOOM_WEBHOOK_SECRET: zoomSecret })
+            body: JSON.stringify({ SUPABASE_URL: url, SUPABASE_ANON_KEY: anon, ADMIN_EMAIL: adminEmail, ADMIN_PASSWORD: adminPassword, SUPABASE_SERVICE_ROLE_KEY: serviceRole, SUPABASE_ACCESS_TOKEN: accessToken, PROJECT_REF: projectRef, ZOOM_WEBHOOK_SECRET: zoomSecret, APPLY_SQL: applySql })
           });
           if (!res.ok) throw new Error('HTTP ' + res.status);
           statusEl.textContent = 'Saved. Redirecting...';
