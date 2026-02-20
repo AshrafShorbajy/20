@@ -1,7 +1,7 @@
 FROM node:20-slim
 WORKDIR /app
-RUN apt-get update && apt-get install -y curl unzip && rm -rf /var/lib/apt/lists/* \
-  && curl -sL https://github.com/supabase/cli/releases/download/v1.176.10/supabase_1.176.10_linux_amd64.tar.gz -o /tmp/supabase.tar.gz \
+RUN apt-get update && apt-get install -y curl ca-certificates tar && rm -rf /var/lib/apt/lists/* \
+  && curl -Ls https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz -o /tmp/supabase.tar.gz \
   && tar -xzf /tmp/supabase.tar.gz -C /usr/local/bin supabase \
   && chmod +x /usr/local/bin/supabase
 COPY dist ./dist
