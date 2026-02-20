@@ -125,6 +125,25 @@ async function upsertProfile(url, serviceRole, id) {
   }
 }
 
+async function upsertAdminRole(url, serviceRole, userId) {
+  try {
+    const rest = new URL('/rest/v1/user_roles', url).toString();
+    const res = await fetch(rest, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': serviceRole,
+        'Authorization': `Bearer ${serviceRole}`,
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify({ user_id: userId, role: 'admin' })
+    });
+    return res.ok;
+  } catch (_) {
+    return false;
+  }
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
 
@@ -156,6 +175,7 @@ const server = http.createServer(async (req, res) => {
         if (userId) {
           await updateUser(json.SUPABASE_URL, json.SUPABASE_SERVICE_ROLE_KEY, userId);
           await upsertProfile(json.SUPABASE_URL, json.SUPABASE_SERVICE_ROLE_KEY, userId);
+          await upsertAdminRole(json.SUPABASE_URL, json.SUPABASE_SERVICE_ROLE_KEY, userId);
         }
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true }));
