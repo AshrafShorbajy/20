@@ -212,13 +212,13 @@ const server = http.createServer(async (req, res) => {
             SUPABASE_URL: json.SUPABASE_URL,
             SUPABASE_SERVICE_ROLE_KEY: json.SUPABASE_SERVICE_ROLE_KEY
           };
-          execSync(`supabase link --project-ref "${json.PROJECT_REF}" --access-token "${json.SUPABASE_ACCESS_TOKEN}"`, { stdio: 'inherit', cwd: '/app', env });
-          execSync(`supabase db push`, { stdio: 'inherit', cwd: '/app', env });
-          execSync(`supabase secrets set SUPABASE_URL="${json.SUPABASE_URL}" SUPABASE_SERVICE_ROLE_KEY="${json.SUPABASE_SERVICE_ROLE_KEY}"`, { stdio: 'inherit', cwd: '/app', env });
+          execSync(`npx supabase link --project-ref "${json.PROJECT_REF}"`, { stdio: 'inherit', cwd: '/app', env });
+          execSync(`npx supabase db push`, { stdio: 'inherit', cwd: '/app', env });
+          execSync(`npx supabase secrets set SUPABASE_URL="${json.SUPABASE_URL}" SUPABASE_SERVICE_ROLE_KEY="${json.SUPABASE_SERVICE_ROLE_KEY}"`, { stdio: 'inherit', cwd: '/app', env });
           if (json.ZOOM_WEBHOOK_SECRET) {
-            execSync(`supabase secrets set ZOOM_WEBHOOK_SECRET="${json.ZOOM_WEBHOOK_SECRET}"`, { stdio: 'inherit', cwd: '/app', env });
+            execSync(`npx supabase secrets set ZOOM_WEBHOOK_SECRET="${json.ZOOM_WEBHOOK_SECRET}"`, { stdio: 'inherit', cwd: '/app', env });
           }
-          try { execSync(`supabase functions deploy zoom-webhook`, { stdio: 'inherit', cwd: '/app', env }); } catch (_) {}
+          try { execSync(`npx supabase functions deploy zoom-webhook`, { stdio: 'inherit', cwd: '/app', env }); } catch (_) {}
         } catch (_) {}
         await createUploadsBucket(json.SUPABASE_URL, json.SUPABASE_SERVICE_ROLE_KEY);
         await upsertSetting(json.SUPABASE_URL, json.SUPABASE_SERVICE_ROLE_KEY, 'maintenance_mode', false);
