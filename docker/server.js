@@ -2,7 +2,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const APP_DIR = path.join(__dirname, '..', 'dist');
+const APP_DIR = path.join(__dirname, 'dist');
 const CONFIG_PATH = path.join(APP_DIR, 'config.js');
 const PORT = process.env.PORT || 80;
 
