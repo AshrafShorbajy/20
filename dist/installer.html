@@ -23,6 +23,12 @@
       <label>Supabase Anon Key
         <input id="anon" type="text" placeholder="ey..." required />
       </label>
+      <label>Admin Email
+        <input id="adminEmail" type="email" placeholder="admin@example.com" required />
+      </label>
+      <label>Admin Password
+        <input id="adminPassword" type="password" placeholder="********" required />
+      </label>
       <button id="check">Check Connection</button>
       <button id="apply" disabled>Apply & Finish</button>
       <div class="status" id="status"></div>
@@ -32,6 +38,8 @@
       const statusEl = document.getElementById('status');
       const urlEl = document.getElementById('url');
       const anonEl = document.getElementById('anon');
+      const adminEmailEl = document.getElementById('adminEmail');
+      const adminPasswordEl = document.getElementById('adminPassword');
       const checkBtn = document.getElementById('check');
       const applyBtn = document.getElementById('apply');
 
@@ -50,13 +58,15 @@
       checkBtn.onclick = async () => {
         const url = urlEl.value.trim();
         const anon = anonEl.value.trim();
+        const adminEmail = adminEmailEl.value.trim();
+        const adminPassword = adminPasswordEl.value.trim();
         statusEl.textContent = 'Checking...';
         const ok = await checkConnection(url, anon);
-        if (ok) {
+        if (ok && adminEmail && adminPassword) {
           statusEl.textContent = 'Connection OK';
           applyBtn.disabled = false;
         } else {
-          statusEl.textContent = 'Connection failed. Verify URL and anon key.';
+          statusEl.textContent = 'Connection failed or admin credentials missing.';
           applyBtn.disabled = true;
         }
       };
@@ -64,12 +74,14 @@
       applyBtn.onclick = async () => {
         const url = urlEl.value.trim();
         const anon = anonEl.value.trim();
+        const adminEmail = adminEmailEl.value.trim();
+        const adminPassword = adminPasswordEl.value.trim();
         statusEl.textContent = 'Applying...';
         try {
           const res = await fetch('/install', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ SUPABASE_URL: url, SUPABASE_ANON_KEY: anon })
+            body: JSON.stringify({ SUPABASE_URL: url, SUPABASE_ANON_KEY: anon, ADMIN_EMAIL: adminEmail, ADMIN_PASSWORD: adminPassword })
           });
           if (!res.ok) throw new Error('HTTP ' + res.status);
           statusEl.textContent = 'Saved. Redirecting...';

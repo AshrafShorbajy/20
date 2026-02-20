@@ -52,11 +52,18 @@ const server = http.createServer(async (req, res) => {
     req.on('end', async () => {
       try {
         const json = JSON.parse(body || '{}');
-        if (!json.SUPABASE_URL || !json.SUPABASE_ANON_KEY) {
+        if (!json.SUPABASE_URL || !json.SUPABASE_ANON_KEY || !json.ADMIN_EMAIL || !json.ADMIN_PASSWORD) {
           res.writeHead(400);
           return res.end('Missing values');
         }
         writeConfig(json);
+        try {
+          const installPath = path.join(__dirname, 'install.json');
+          fs.writeFileSync(installPath, JSON.stringify({
+            ADMIN_EMAIL: json.ADMIN_EMAIL,
+            ADMIN_PASSWORD: json.ADMIN_PASSWORD
+          }), 'utf-8');
+        } catch (_) {}
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true }));
       } catch (e) {
