@@ -32,6 +32,9 @@
       <label>Supabase Project Ref
         <input id="projectRef" type="text" placeholder="abcd1234" required />
       </label>
+      <label>Zoom Webhook Secret (اختياري)
+        <input id="zoomSecret" type="password" placeholder="zoom_webhook_secret" />
+      </label>
       <label>Admin Email
         <input id="adminEmail" type="email" placeholder="admin@example.com" required />
       </label>
@@ -52,6 +55,7 @@
       const serviceRoleEl = document.getElementById('serviceRole');
       const accessTokenEl = document.getElementById('accessToken');
       const projectRefEl = document.getElementById('projectRef');
+      const zoomSecretEl = document.getElementById('zoomSecret');
       const checkBtn = document.getElementById('check');
       const applyBtn = document.getElementById('apply');
 
@@ -75,6 +79,7 @@
         const serviceRole = serviceRoleEl.value.trim();
         const accessToken = accessTokenEl.value.trim();
         const projectRef = projectRefEl.value.trim();
+        const zoomSecret = zoomSecretEl.value.trim();
         statusEl.textContent = 'Checking...';
         const ok = await checkConnection(url, anon);
         if (ok && adminEmail && adminPassword && serviceRole && accessToken && projectRef) {
@@ -94,12 +99,13 @@
         const serviceRole = serviceRoleEl.value.trim();
         const accessToken = accessTokenEl.value.trim();
         const projectRef = projectRefEl.value.trim();
+        const zoomSecret = zoomSecretEl.value.trim();
         statusEl.textContent = 'Applying...';
         try {
           const res = await fetch('/install', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ SUPABASE_URL: url, SUPABASE_ANON_KEY: anon, ADMIN_EMAIL: adminEmail, ADMIN_PASSWORD: adminPassword, SUPABASE_SERVICE_ROLE_KEY: serviceRole, SUPABASE_ACCESS_TOKEN: accessToken, PROJECT_REF: projectRef })
+            body: JSON.stringify({ SUPABASE_URL: url, SUPABASE_ANON_KEY: anon, ADMIN_EMAIL: adminEmail, ADMIN_PASSWORD: adminPassword, SUPABASE_SERVICE_ROLE_KEY: serviceRole, SUPABASE_ACCESS_TOKEN: accessToken, PROJECT_REF: projectRef, ZOOM_WEBHOOK_SECRET: zoomSecret })
           });
           if (!res.ok) throw new Error('HTTP ' + res.status);
           statusEl.textContent = 'Saved. Redirecting...';

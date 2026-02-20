@@ -144,6 +144,43 @@ async function upsertAdminRole(url, serviceRole, userId) {
   }
 }
 
+async function upsertSetting(url, serviceRole, key, value) {
+  try {
+    const rest = new URL('/rest/v1/site_settings', url).toString();
+    const res = await fetch(rest, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': serviceRole,
+        'Authorization': `Bearer ${serviceRole}`,
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify({ key, value })
+    });
+    return res.ok;
+  } catch (_) {
+    return false;
+  }
+}
+
+async function createUploadsBucket(url, serviceRole) {
+  try {
+    const api = new URL('/storage/v1/bucket', url).toString();
+    const res = await fetch(api, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': serviceRole,
+        'Authorization': `Bearer ${serviceRole}`
+      },
+      body: JSON.stringify({ name: 'uploads', public: true })
+    });
+    return res.ok || res.status === 409;
+  } catch (_) {
+    return false;
+  }
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
 
@@ -178,7 +215,16 @@ const server = http.createServer(async (req, res) => {
           execSync(`supabase link --project-ref "${json.PROJECT_REF}" --access-token "${json.SUPABASE_ACCESS_TOKEN}"`, { stdio: 'inherit', cwd: '/app', env });
           execSync(`supabase db push`, { stdio: 'inherit', cwd: '/app', env });
           execSync(`supabase secrets set SUPABASE_URL="${json.SUPABASE_URL}" SUPABASE_SERVICE_ROLE_KEY="${json.SUPABASE_SERVICE_ROLE_KEY}"`, { stdio: 'inherit', cwd: '/app', env });
+          if (json.ZOOM_WEBHOOK_SECRET) {
+            execSync(`supabase secrets set ZOOM_WEBHOOK_SECRET="${json.ZOOM_WEBHOOK_SECRET}"`, { stdio: 'inherit', cwd: '/app', env });
+          }
+          try { execSync(`supabase functions deploy zoom-webhook`, { stdio: 'inherit', cwd: '/app', env }); } catch (_) {}
         } catch (_) {}
+        await createUploadsBucket(json.SUPABASE_URL, json.SUPABASE_SERVICE_ROLE_KEY);
+        await upsertSetting(json.SUPABASE_URL, json.SUPABASE_SERVICE_ROLE_KEY, 'maintenance_mode', false);
+        await upsertSetting(json.SUPABASE_URL, json.SUPABASE_SERVICE_ROLE_KEY, 'homepage_sections_order', ['announcements','promo_banners','lesson_types','offers']);
+        await upsertSetting(json.SUPABASE_URL, json.SUPABASE_SERVICE_ROLE_KEY, 'site_name', 'New Deployment');
+        await upsertSetting(json.SUPABASE_URL, json.SUPABASE_SERVICE_ROLE_KEY, 'offers', []);
         const created = await createAdmin(json.SUPABASE_URL, json.SUPABASE_SERVICE_ROLE_KEY, json.ADMIN_EMAIL, json.ADMIN_PASSWORD);
         let userId = created && created.id ? created.id : null;
         if (!userId) {
