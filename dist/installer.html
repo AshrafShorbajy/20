@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>App Installer</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 40px; }
+      .box { max-width: 520px; margin: 0 auto; padding: 24px; border: 1px solid #ddd; border-radius: 8px; }
+      label { display: block; margin-top: 12px; }
+      input { width: 100%; padding: 8px; margin-top: 6px; }
+      button { margin-top: 16px; padding: 10px 16px; }
+      .status { margin-top: 12px; }
+    </style>
+  </head>
+  <body>
+    <div class="box">
+      <h2>Install Configuration</h2>
+      <p>Enter your Supabase project credentials to finish installation.</p>
+      <label>Supabase URL
+        <input id="url" type="url" placeholder="https://xxxx.supabase.co" required />
+      </label>
+      <label>Supabase Anon Key
+        <input id="anon" type="text" placeholder="ey..." required />
+      </label>
+      <button id="check">Check Connection</button>
+      <button id="apply" disabled>Apply & Finish</button>
+      <div class="status" id="status"></div>
+    </div>
+
+    <script>
+      const statusEl = document.getElementById('status');
+      const urlEl = document.getElementById('url');
+      const anonEl = document.getElementById('anon');
+      const checkBtn = document.getElementById('check');
+      const applyBtn = document.getElementById('apply');
+
+      async function checkConnection(url, anon) {
+        try {
+          const settingsUrl = new URL('/auth/v1/settings', url).toString();
+          const res = await fetch(settingsUrl, { headers: { apikey: anon } });
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          await res.json();
+          return true;
+        } catch (e) {
+          return false;
+        }
+      }
+
+      checkBtn.onclick = async () => {
+        const url = urlEl.value.trim();
+        const anon = anonEl.value.trim();
+        statusEl.textContent = 'Checking...';
+        const ok = await checkConnection(url, anon);
+        if (ok) {
+          statusEl.textContent = 'Connection OK';
+          applyBtn.disabled = false;
+        } else {
+          statusEl.textContent = 'Connection failed. Verify URL and anon key.';
+          applyBtn.disabled = true;
+        }
+      };
+
+      applyBtn.onclick = async () => {
+        const url = urlEl.value.trim();
+        const anon = anonEl.value.trim();
+        statusEl.textContent = 'Applying...';
+        try {
+          const res = await fetch('/install', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ SUPABASE_URL: url, SUPABASE_ANON_KEY: anon })
+          });
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          statusEl.textContent = 'Saved. Redirecting...';
+          setTimeout(() => location.href = '/', 800);
+        } catch (e) {
+          statusEl.textContent = 'Failed to save configuration.';
+        }
+      };
+    </script>
+  </body>
+</html>

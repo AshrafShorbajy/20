@@ -1,7 +1,7 @@
-FROM nginx:alpine
-WORKDIR /usr/share/nginx/html
-COPY dist ./
-COPY docker/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-ENTRYPOINT ["/entrypoint.sh"]
-CMD ["nginx", "-g", "daemon off;"]
+FROM node:20-alpine
+WORKDIR /app
+COPY dist ./dist
+COPY docker/server.js ./server.js
+ENV PORT=80
+EXPOSE 80
+CMD ["node", "server.js"]
