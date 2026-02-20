@@ -1,6 +1,7 @@
 FROM node:20-slim
 WORKDIR /app
-RUN npm i -g supabase@latest
+COPY package.json ./package.json
+RUN npm install --no-audit --no-fund
 COPY dist ./dist
 COPY supabase ./supabase
 COPY docker/server.js ./server.js
