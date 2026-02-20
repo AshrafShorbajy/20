@@ -212,6 +212,13 @@ const server = http.createServer(async (req, res) => {
             SUPABASE_URL: json.SUPABASE_URL,
             SUPABASE_SERVICE_ROLE_KEY: json.SUPABASE_SERVICE_ROLE_KEY
           };
+          try {
+            const cfg = path.join('/app', 'supabase', 'config.toml');
+            if (!fs.existsSync(cfg)) {
+              execSync(`npx supabase init --force`, { stdio: 'inherit', cwd: '/app', env });
+            }
+          } catch (_) {}
+          execSync(`npx supabase login --token "${json.SUPABASE_ACCESS_TOKEN}"`, { stdio: 'inherit', cwd: '/app', env });
           execSync(`npx supabase link --project-ref "${json.PROJECT_REF}"`, { stdio: 'inherit', cwd: '/app', env });
           execSync(`npx supabase db push`, { stdio: 'inherit', cwd: '/app', env });
           execSync(`npx supabase secrets set SUPABASE_URL="${json.SUPABASE_URL}" SUPABASE_SERVICE_ROLE_KEY="${json.SUPABASE_SERVICE_ROLE_KEY}"`, { stdio: 'inherit', cwd: '/app', env });
