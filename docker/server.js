@@ -29,6 +29,17 @@ try {
 function serveFile(req, res, filePath) {
   fs.readFile(filePath, (err, data) => {
     if (err) {
+      const indexPath = path.join(APP_DIR, 'index.html');
+      if (path.resolve(filePath) !== path.resolve(indexPath)) {
+        return fs.readFile(indexPath, (err2, data2) => {
+          if (err2) {
+            res.writeHead(404);
+            return res.end('Not found');
+          }
+          res.writeHead(200, { 'Content-Type': 'text/html' });
+          res.end(data2);
+        });
+      }
       res.writeHead(404);
       return res.end('Not found');
     }
