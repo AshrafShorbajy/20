@@ -1,6 +1,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { exec } = require('child_process');
 
 const APP_DIR = path.join(__dirname, 'dist');
 const CONFIG_PATH = path.join(APP_DIR, 'config.js');
@@ -144,6 +145,17 @@ async function upsertAdminRole(url, serviceRole, userId) {
   }
 }
 
+function run(cmd, cwd, env) {
+  return new Promise((resolve) => {
+    const p = exec(cmd, { cwd, env });
+    let out = '';
+    let err = '';
+    p.stdout.on('data', d => out += String(d));
+    p.stderr.on('data', d => err += String(d));
+    p.on('close', code => resolve({ ok: code === 0, out, err, code }));
+  });
+}
+
 async function upsertSetting(url, serviceRole, key, value) {
   try {
     const rest = new URL('/rest/v1/site_settings', url).toString();
@@ -199,34 +211,41 @@ const server = http.createServer(async (req, res) => {
           const installPath = path.join(__dirname, 'install.json');
           fs.writeFileSync(installPath, JSON.stringify({
             ADMIN_EMAIL: json.ADMIN_EMAIL,
-            ADMIN_PASSWORD: json.ADMIN_PASSWORD
+            ADMIN_PASSWORD: json.ADMIN_PASSWORD,
+            SUPABASE_ACCESS_TOKEN: json.SUPABASE_ACCESS_TOKEN,
+            PROJECT_REF: json.PROJECT_REF
           }), 'utf-8');
         } catch (_) {}
-        // Run Supabase CLI to link and push migrations
-        try {
-          const { execSync } = require('child_process');
-          const env = {
-            ...process.env,
-            SUPABASE_ACCESS_TOKEN: json.SUPABASE_ACCESS_TOKEN,
-            PROJECT_REF: json.PROJECT_REF,
-            SUPABASE_URL: json.SUPABASE_URL,
-            SUPABASE_SERVICE_ROLE_KEY: json.SUPABASE_SERVICE_ROLE_KEY
-          };
-          try {
-            const cfg = path.join('/app', 'supabase', 'config.toml');
-            if (!fs.existsSync(cfg)) {
-              execSync(`npx supabase init --force`, { stdio: 'inherit', cwd: '/app', env });
-            }
-          } catch (_) {}
-          execSync(`npx supabase login --token "${json.SUPABASE_ACCESS_TOKEN}"`, { stdio: 'inherit', cwd: '/app', env });
-          execSync(`npx supabase link --project-ref "${json.PROJECT_REF}"`, { stdio: 'inherit', cwd: '/app', env });
-          execSync(`npx supabase db push`, { stdio: 'inherit', cwd: '/app', env });
-          execSync(`npx supabase secrets set SUPABASE_URL="${json.SUPABASE_URL}" SUPABASE_SERVICE_ROLE_KEY="${json.SUPABASE_SERVICE_ROLE_KEY}"`, { stdio: 'inherit', cwd: '/app', env });
-          if (json.ZOOM_WEBHOOK_SECRET) {
-            execSync(`npx supabase secrets set ZOOM_WEBHOOK_SECRET="${json.ZOOM_WEBHOOK_SECRET}"`, { stdio: 'inherit', cwd: '/app', env });
-          }
-          try { execSync(`npx supabase functions deploy zoom-webhook`, { stdio: 'inherit', cwd: '/app', env }); } catch (_) {}
-        } catch (_) {}
+        const env = {
+          ...process.env,
+          SUPABASE_ACCESS_TOKEN: json.SUPABASE_ACCESS_TOKEN,
+          PROJECT_REF: json.PROJECT_REF,
+          SUPABASE_URL: json.SUPABASE_URL,
+          SUPABASE_SERVICE_ROLE_KEY: json.SUPABASE_SERVICE_ROLE_KEY
+        };
+        const steps = [];
+        const cfg = path.join('/app', 'supabase', 'config.toml');
+        if (!fs.existsSync(cfg)) {
+          const s0 = await run(`npx supabase init --force`, '/app', env);
+          steps.push({ step: 'init', ok: s0.ok, out: s0.out, err: s0.err });
+          if (!s0.ok) return send(res, { ok: false, steps });
+        }
+        const s1 = await run(`npx supabase login --token "${json.SUPABASE_ACCESS_TOKEN}"`, '/app', env);
+        steps.push({ step: 'login', ok: s1.ok, out: s1.out, err: s1.err });
+        if (!s1.ok) return send(res, { ok: false, steps });
+        const s2 = await run(`npx supabase link --project-ref "${json.PROJECT_REF}"`, '/app', env);
+        steps.push({ step: 'link', ok: s2.ok, out: s2.out, err: s2.err });
+        if (!s2.ok) return send(res, { ok: false, steps });
+        const s3 = await run(`npx supabase db push`, '/app', env);
+        steps.push({ step: 'db_push', ok: s3.ok, out: s3.out, err: s3.err });
+        if (!s3.ok) return send(res, { ok: false, steps });
+        const s4 = await run(`npx supabase secrets set SUPABASE_URL="${json.SUPABASE_URL}" SUPABASE_SERVICE_ROLE_KEY="${json.SUPABASE_SERVICE_ROLE_KEY}"`, '/app', env);
+        steps.push({ step: 'secrets_base', ok: s4.ok, out: s4.out, err: s4.err });
+        if (json.ZOOM_WEBHOOK_SECRET) {
+          const s5 = await run(`npx supabase secrets set ZOOM_WEBHOOK_SECRET="${json.ZOOM_WEBHOOK_SECRET}"`, '/app', env);
+          steps.push({ step: 'secrets_zoom', ok: s5.ok, out: s5.out, err: s5.err });
+          await run(`npx supabase functions deploy zoom-webhook`, '/app', env);
+        }
         await createUploadsBucket(json.SUPABASE_URL, json.SUPABASE_SERVICE_ROLE_KEY);
         await upsertSetting(json.SUPABASE_URL, json.SUPABASE_SERVICE_ROLE_KEY, 'maintenance_mode', false);
         await upsertSetting(json.SUPABASE_URL, json.SUPABASE_SERVICE_ROLE_KEY, 'homepage_sections_order', ['announcements','promo_banners','lesson_types','offers']);
@@ -244,8 +263,7 @@ const server = http.createServer(async (req, res) => {
           await upsertProfile(json.SUPABASE_URL, json.SUPABASE_SERVICE_ROLE_KEY, userId);
           await upsertAdminRole(json.SUPABASE_URL, json.SUPABASE_SERVICE_ROLE_KEY, userId);
         }
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true }));
+        send(res, { ok: true, steps });
       } catch (e) {
         res.writeHead(500);
         res.end('Error');
@@ -268,3 +286,8 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, () => {
   console.log(`Server listening on ${PORT}`);
 });
+
+function send(res, payload) {
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(payload));
+}
