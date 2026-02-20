@@ -153,7 +153,7 @@ const server = http.createServer(async (req, res) => {
     req.on('end', async () => {
       try {
         const json = JSON.parse(body || '{}');
-        if (!json.SUPABASE_URL || !json.SUPABASE_ANON_KEY || !json.ADMIN_EMAIL || !json.ADMIN_PASSWORD || !json.SUPABASE_SERVICE_ROLE_KEY) {
+        if (!json.SUPABASE_URL || !json.SUPABASE_ANON_KEY || !json.ADMIN_EMAIL || !json.ADMIN_PASSWORD || !json.SUPABASE_SERVICE_ROLE_KEY || !json.SUPABASE_ACCESS_TOKEN || !json.PROJECT_REF) {
           res.writeHead(400);
           return res.end('Missing values');
         }
@@ -164,6 +164,20 @@ const server = http.createServer(async (req, res) => {
             ADMIN_EMAIL: json.ADMIN_EMAIL,
             ADMIN_PASSWORD: json.ADMIN_PASSWORD
           }), 'utf-8');
+        } catch (_) {}
+        // Run Supabase CLI to link and push migrations
+        try {
+          const { execSync } = require('child_process');
+          const env = {
+            ...process.env,
+            SUPABASE_ACCESS_TOKEN: json.SUPABASE_ACCESS_TOKEN,
+            PROJECT_REF: json.PROJECT_REF,
+            SUPABASE_URL: json.SUPABASE_URL,
+            SUPABASE_SERVICE_ROLE_KEY: json.SUPABASE_SERVICE_ROLE_KEY
+          };
+          execSync(`supabase link --project-ref "${json.PROJECT_REF}" --access-token "${json.SUPABASE_ACCESS_TOKEN}"`, { stdio: 'inherit', cwd: '/app', env });
+          execSync(`supabase db push`, { stdio: 'inherit', cwd: '/app', env });
+          execSync(`supabase secrets set SUPABASE_URL="${json.SUPABASE_URL}" SUPABASE_SERVICE_ROLE_KEY="${json.SUPABASE_SERVICE_ROLE_KEY}"`, { stdio: 'inherit', cwd: '/app', env });
         } catch (_) {}
         const created = await createAdmin(json.SUPABASE_URL, json.SUPABASE_SERVICE_ROLE_KEY, json.ADMIN_EMAIL, json.ADMIN_PASSWORD);
         let userId = created && created.id ? created.id : null;

@@ -29,6 +29,8 @@ async function run() {
     const { data: prof } = await supabase.from('profiles').select('user_id').eq('user_id', adminUserId).maybeSingle();
     if (!prof) { await supabase.from('profiles').insert({ user_id: adminUserId, full_name: 'Administrator', role: 'admin' }); }
     else { await supabase.from('profiles').update({ role: 'admin' }).eq('user_id', adminUserId); }
+      const { data: roleRow } = await supabase.from('user_roles').select('id').eq('user_id', adminUserId).eq('role', 'admin').maybeSingle();
+      if (!roleRow) { await supabase.from('user_roles').insert({ user_id: adminUserId, role: 'admin' }); }
   }
 }
 run().then(()=>console.log('Seeding complete')).catch(e=>{ console.error(e); process.exit(1); });

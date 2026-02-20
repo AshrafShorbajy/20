@@ -26,6 +26,12 @@
       <label>Supabase Service Role Key
         <input id="serviceRole" type="password" placeholder="service_role_key" required />
       </label>
+      <label>Supabase Access Token
+        <input id="accessToken" type="password" placeholder="supabase_access_token" required />
+      </label>
+      <label>Supabase Project Ref
+        <input id="projectRef" type="text" placeholder="abcd1234" required />
+      </label>
       <label>Admin Email
         <input id="adminEmail" type="email" placeholder="admin@example.com" required />
       </label>
@@ -44,6 +50,8 @@
       const adminEmailEl = document.getElementById('adminEmail');
       const adminPasswordEl = document.getElementById('adminPassword');
       const serviceRoleEl = document.getElementById('serviceRole');
+      const accessTokenEl = document.getElementById('accessToken');
+      const projectRefEl = document.getElementById('projectRef');
       const checkBtn = document.getElementById('check');
       const applyBtn = document.getElementById('apply');
 
@@ -65,9 +73,11 @@
         const adminEmail = adminEmailEl.value.trim();
         const adminPassword = adminPasswordEl.value.trim();
         const serviceRole = serviceRoleEl.value.trim();
+        const accessToken = accessTokenEl.value.trim();
+        const projectRef = projectRefEl.value.trim();
         statusEl.textContent = 'Checking...';
         const ok = await checkConnection(url, anon);
-        if (ok && adminEmail && adminPassword && serviceRole) {
+        if (ok && adminEmail && adminPassword && serviceRole && accessToken && projectRef) {
           statusEl.textContent = 'Connection OK';
           applyBtn.disabled = false;
         } else {
@@ -82,12 +92,14 @@
         const adminEmail = adminEmailEl.value.trim();
         const adminPassword = adminPasswordEl.value.trim();
         const serviceRole = serviceRoleEl.value.trim();
+        const accessToken = accessTokenEl.value.trim();
+        const projectRef = projectRefEl.value.trim();
         statusEl.textContent = 'Applying...';
         try {
           const res = await fetch('/install', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ SUPABASE_URL: url, SUPABASE_ANON_KEY: anon, ADMIN_EMAIL: adminEmail, ADMIN_PASSWORD: adminPassword, SUPABASE_SERVICE_ROLE_KEY: serviceRole })
+            body: JSON.stringify({ SUPABASE_URL: url, SUPABASE_ANON_KEY: anon, ADMIN_EMAIL: adminEmail, ADMIN_PASSWORD: adminPassword, SUPABASE_SERVICE_ROLE_KEY: serviceRole, SUPABASE_ACCESS_TOKEN: accessToken, PROJECT_REF: projectRef })
           });
           if (!res.ok) throw new Error('HTTP ' + res.status);
           statusEl.textContent = 'Saved. Redirecting...';
